@@ -47,7 +47,7 @@
         shell = pkgs.mkShell {
           inputsFrom = [crops];
 
-          nativeBuildInputs = with pkgs; [ctypesgen rust-cbindgen simple.python];
+          nativeBuildInputs = with pkgs; [ctypesgen rust-cbindgen] ++ (map (ex: ex.python) (builtins.attrValues examples));
         };
 
         mkExample = {name}: let
@@ -99,15 +99,19 @@
             };
         in {inherit lib python;};
 
-        simple = mkExample {
-          name = "simple";
-        };
+        examples = builtins.listToAttrs (map (name: {
+            inherit name;
+            value = mkExample {inherit name;};
+          }) [
+            "simple"
+          ]);
       in rec {
         # For `nix build` & `nix run`:
-        packages = {
-          default = crops;
-          inherit simple;
-        };
+        packages =
+          {
+            default = crops;
+          }
+          // examples;
 
         # For `nix develop`:
         devShells = {
