@@ -20,11 +20,16 @@
       let
         pkgs = (import nixpkgs) {
           inherit system;
+          overlays = [
+            (final: prev: {
+              ctypesgen = prev.python3Packages.callPackage ./pkgs/ctypesgen.nix {};
+            })
+          ];
         };
 
         toolchain =
           (fenix.packages.${system}.toolchainOf {
-            sha256 = "sha256-1v11D19X2KU+ARrP8CYDip35C9E+hmJRYffZXAntY9g=";
+            sha256 = "sha256-IUZ+84Dg0ubNlH8jwG0hRa4F9Ye4uRYBNzC90+eqalc=";
           }).toolchain;
 
         naersk' = pkgs.callPackage naersk {
@@ -36,29 +41,40 @@
           src = ./crops;
           copyLibs = true;
           nativeBuildInputs = with pkgs; [
-            rust-cbindgen
             cargo-expand
           ];
-          postInstall = ''
-            mkdir $out/include
-            cbindgen --config cbindgen.toml --crate crops --output $out/include/crops.h
-          '';
         };
-
-        crops-py = pkgs.python3Packages.callPackage ./crops/python { inherit crops; };
 
         shell = pkgs.mkShell {
           inputsFrom = [ crops ];
-          # nativeBuildInputs = [
-          #   (pkgs.python3.withPackages (p: with p; [ crops-py ]))
-          # ];
+
+          nativeBuildInputs = with pkgs; [ ctypesgen rust-cbindgen ]; 
         };
+
+        mkExample = { name }: naersk'.buildPackage {
+          inherit name;
+          src = ./examples + "/${name}";
+          copyLibs = true;
+          nativeBuildInputs = with pkgs; [ cargo-expand rust-cbindgen ];
+          preBuild = ''
+            ln -s ${./crops} crops
+          '';
+          postInstall = ''
+            mkdir $out/include
+            cbindgen --config $src/cbindgen.toml --crate ${name} --output $out/include/${name}.h
+          '';
+        };
+
+        simple = mkExample {
+          name = "simple";
+        };
+
       in
       rec {
         # For `nix build` & `nix run`:
         packages = {
           default = crops;
-          inherit crops crops-py;
+          inherit simple;
         };
 
         # For `nix develop`:
