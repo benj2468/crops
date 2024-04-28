@@ -137,10 +137,6 @@ sort_by = "Name"
 bitflags = false
 
 
-
-
-
-
 ############## Options for How Your Rust library Should Be Parsed ##############
 
 [parse]
