@@ -4,127 +4,20 @@ An in-development workspace for Rust-C Interoperability Tooling
 
 ## How does it work?
 
-```rust
-/// Test Structure
-#[derive(Debug, Default, PartialEq, Clone, CBuilder)]
-pub struct TestScruct {
-    field_a: f64,
-    field_b: String,
-    field_c: Option<u32>,
-    field_d: Vec<u32>,
-    field_e: InnerStruct,
-    field_f: InnerEnum,
-}
+Consider the `simple` example, outline in [`examples/simple`](examples/simple).
 
-#[derive(Debug, Default, PartialEq, Clone, CBuilder)]
-#[c_builder(constructor = (field_1,))]
-pub struct InnerStruct {
-    field_1: String,
-}
+The rust code is very simple, and can be found [`lib.rs`](examples/simple/src/lib.rs)
 
+The derive macros applied to the struct and to the enums will produce code that can be seen in [`expanded.rs`](examples/simple/expanded.rs).
+Notice that the expanded code has numerous `#[no_mangle] pub extern "C"` functions. This is the entire point!
 
-#[derive(Debug, PartialEq, Clone, CBuilder)]
-pub enum InnerEnum {
-    None,
-    Option1(u32),
-    Option2(f64)
-}
+We've generated functions to create, debug, mutate, and get data on the enums and structs that we created.
 
-impl Default for InnerEnum {
-    fn default() -> Self {
-        Self::None
-    }
-}
+This effectively creates a safe FFI, where rather than passing struct's data across the barrier, we are always only passing pointers, or raw clib data types.
 
-```
+You'll also notice a nested function, that is not public. The outer function that is `extern "C"` returns a C error code, through the convention of an `int`. But the inner function is rust function, that uses the `utils::CResult` to use semantically meaninful rust to return a rust Result type.
 
-By default the `CBuilder` will generate three basic functions for constructing, debugging, and cloning a structure:
-```rust
-/// Test Scructure
-#[no_mangle]
-pub extern "C" fn test_scruct_default() -> *mut TestScruct {
-    Box::into_raw(Box::default())
-}
-/// Test Scructure
-#[no_mangle]
-pub extern "C" fn test_scruct_clone(s: &TestScruct) -> *mut TestScruct {
-    Box::into_raw(Box::new(s.clone()))
-}
-/// Test Scructure
-#[no_mangle]
-pub extern "C" fn test_scruct_debug(s: &TestScruct) {
-    {
-        ::std::io::_print(format_args!("{0:?}\n", s));
-    };
-}
-```
-
-Then, it will construct the extra constructors that we specified. Here is one example from the `InnerStruct`:
-```rust
-fn inner_inner_struct_from_field_1(
-    field_1: &::libc::c_char,
-) -> Result<InnerStruct, String> {
-    let mut res = InnerStruct::default();
-    res.field_1 = utils::as_string(field_1)?;
-    Ok(res)
-}
-#[no_mangle]
-pub extern "C" fn inner_struct_from_field_1(
-    field_1: &::libc::c_char,
-) -> *mut InnerStruct {
-    let res = inner_inner_struct_from_field_1(field_1)
-        .expect(
-            &{
-                let res = ::alloc::fmt::format(
-                    format_args!("Error creating: {0:?}", "InnerStruct"),
-                );
-                res
-            },
-        );
-    Box::into_raw(Box::new(res))
-}
-```
-
-The top function here is a non-c API like function that masks the C-like "Return an `int` error code" functionality with the rust `?` return a result simplicity.
-
-The lower function is in fact the C API.
-
-Next, it will generate mutators, for example.
-```rust
-/// Replaces the current value with the provided value
-fn _inner_test_scruct_with_field_a(
-    source: *mut TestScruct,
-    value: f64,
-) -> utils::CResult {
-    utils::check_null(source)
-        .map_err(|e| {
-            let res = ::alloc::fmt::format(
-                format_args!("{1} ({0})", "TestScruct", e),
-            );
-            res
-        })?
-        .field_a = value;
-    Ok(())
-}
-/// Replaces the current value with the provided value
-#[no_mangle]
-pub extern "C" fn test_scruct_with_field_a(
-    source: *mut TestScruct,
-    value: f64,
-) -> i32 {
-    match _inner_test_scruct_with_field_a(source, value) {
-        Ok(_) => 0,
-        Err(e) => {
-            {
-                ::std::io::_eprint(format_args!("{0:?}\n", e));
-            };
-            1
-        }
-    }
-}
-```
-
-Different wrapper types get different methods:
+## Generated Interfaces
 
 All of these will return an error code if you pass in a null pointer
 
@@ -141,132 +34,17 @@ All of these will return an error code if you pass in a null pointer
     - `take`: Take and return the value inside the option.
         - Will return error code if `Option::is_none`
 
+## Generating C
 
-We then use `ctypesgen` to build a c-api based on these `#[no_mangle]` functions. So the LLA api will look like this:
+We then use `cbindgen` to build a c-api based on these `#[no_mangle]` functions, which can be sen in the [`simple.h`](examples/simple/include/simple.h).
 
-```c
-/**
- * Test Scructure
- */
-struct TestScruct *test_scruct_clone(const struct TestScruct *s);
+The proccess for this is done in `flake.nix`, but could also be done in a `build.rs` or however you prefer to use `cbindgen`.
 
-/**
- * Test Scructure
- */
-void test_scruct_debug(const struct TestScruct *s);
+## Generated Python
 
-/**
- * Test Scructure
- */
-struct TestScruct *test_scruct_default(void);
+It is also now easy to create a python interface to our rust structures. With [`ctypesgen`](https://github.com/ctypesgen/ctypesgen), we can quickly and easily generate python bindings to a c library using it's header files.
 
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_get_field_a(const struct TestScruct *source, double *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_get_field_b(const struct TestScruct *source, struct StringBuffer c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_get_field_c(const struct TestScruct *source, uint32_t *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_get_field_d(const struct TestScruct *source, size_t idx, uint32_t *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_get_field_e(const struct TestScruct *source, struct InnerStruct *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_get_field_f(const struct TestScruct *source, struct InnerEnum *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_push_field_d(struct TestScruct *source, uint32_t value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_remove_field_d(struct TestScruct *source, size_t idx, uint32_t *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_replace_field_c(struct TestScruct *source, uint32_t value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_take_field_c(struct TestScruct *source, uint32_t *c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_with_field_a(struct TestScruct *source, double value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_with_field_b(struct TestScruct *source, const char *value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_with_field_e(struct TestScruct *source, const struct InnerStruct *value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t test_scruct_with_field_f(struct TestScruct *source, const struct InnerEnum *value);
-
-
-int32_t inner_enum_as_none(struct InnerEnum *res);
-
-int32_t inner_enum_as_option_1(struct InnerEnum *res, uint32_t value);
-
-int32_t inner_enum_as_option_2(struct InnerEnum *res, double value);
-
-struct InnerEnum *inner_enum_clone(const struct InnerEnum *s);
-
-void inner_enum_debug(const struct InnerEnum *s);
-
-struct InnerEnum *inner_enum_default(void);
-
-struct InnerEnum *inner_enum_from_none(void);
-
-struct InnerEnum *inner_enum_from_option_1(uint32_t value);
-
-struct InnerEnum *inner_enum_from_option_2(double value);
-
-struct InnerStruct *inner_struct_clone(const struct InnerStruct *s);
-
-void inner_struct_debug(const struct InnerStruct *s);
-
-struct InnerStruct *inner_struct_default(void);
-
-struct InnerStruct *inner_struct_from_field_1(const char *field_1);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t inner_struct_get_field_1(const struct InnerStruct *source, struct StringBuffer c_value);
-
-/**
- * Replaces the current value with the provided value
- */
-int32_t inner_struct_with_field_1(struct InnerStruct *source, const char *value);
-```
+We do this in the `flake.nix` `mkExample` function as well. This is the easiest way to demo this functionality. The API you'll see in the python repl will be *almost* identical to that of the C api.
 
 ## Demo
 
