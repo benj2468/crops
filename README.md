@@ -274,6 +274,11 @@ Want to try it out?
 
 1. First `nix develop` in the root.
 
-2. In [`crop-examples/py/src`](./crop-examples/py/src) you'll find a [`test1.py`](./crop-examples/py/src/test1.py). This is a good example of generating a simple sceanrio, where all the red fighters start in a Loiter.
-
-3. Simple execute that file using `python ./crop-examples/py/src/test1.py`, then go look at `./out/example` to see the scenario config directory.
+2. The `simple` example will be available to play with in the python repl.
+```bash
+$ nix develop
+$ python
+>>> import simple
+>>> b = simple.brush_default()
+>>> simple.brush_debug(b)
+```
