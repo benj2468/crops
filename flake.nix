@@ -44,6 +44,17 @@
           ];
         };
 
+        hook =
+          pkgs.makeSetupHook {
+            name = "link-crops";
+          } (pkgs.writeShellScript "link-crops" ''
+              linker () {
+                mkdir -p .nix-crates
+                ln -s ${./crops} .nix-crates/crops
+              }
+              preBuildPhases+=linker
+        '');
+
         shell = pkgs.mkShell {
           inputsFrom = [crops];
 
@@ -55,10 +66,7 @@
             inherit name;
             src = ./examples + "/${name}";
             copyLibs = true;
-            nativeBuildInputs = with pkgs; [cargo-expand rust-cbindgen];
-            preBuild = ''
-              ln -s ${./crops} crops
-            '';
+            nativeBuildInputs = with pkgs; [cargo-expand rust-cbindgen hook];
             postInstall = ''
               cbindgen --config $src/cbindgen.toml --crate ${name} --output $out/include/${name}.h
             '';
