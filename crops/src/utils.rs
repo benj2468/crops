@@ -36,9 +36,9 @@ pub fn copy_string(c_value: StringBuffer, value: &str) -> Result<(), String> {
         .map(|s| s.as_bytes_with_nul().to_vec())
         .map_err(|e| format!("{e:?}"))?;
 
-    let res = unsafe { &*(res.as_slice() as *const [u8]) };
+    let res = &*(res.as_slice());
 
-    let bytes = unsafe { std::slice::from_raw_parts_mut(c_value.buffer, c_value.len) };
+    let bytes = unsafe { std::slice::from_raw_parts_mut(c_value.buffer as *mut u8, c_value.len) };
 
     let len = std::cmp::min(res.len(), c_value.len);
 
