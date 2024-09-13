@@ -141,7 +141,7 @@ impl CBuilderArgs {
                     return false;
                 }
             }
-            true
+            false
         });
 
         attrs
@@ -421,7 +421,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
 
             Some(quote::quote! {
                 #(#filtered_attrs)*
-                /// Replaces the current value with the provided value
+                /// ------
+                /// Pushes the new value to the end of the vector
+                /// ------
                 #[::crops::c_result_fn]
                 fn #pusher(source: *mut #ident, value: #from_c) -> ::crops::utils::CResult {
                     ::crops::utils::check_null(source)
@@ -432,7 +434,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
                 }
 
                 #(#filtered_attrs)*
-                /// Replaces the current value with the provided value
+                /// ------
+                /// Gets the current value inside the field
+                /// ------
                 #[::crops::c_result_fn]
                 fn #getter(source: *const #ident, idx: usize, c_value: #to_c) -> ::crops::utils::CResult {
                     let value = ::crops::utils::check_null_const(source)
@@ -447,7 +451,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
                 }
 
                 #(#filtered_attrs)*
-                /// Replaces the current value with the provided value
+                /// ------
+                /// Removes the element at the provided index, if it doesn't exist, returns an error.
+                /// ------
                 #[::crops::c_result_fn]
                 fn #remove(source: *mut #ident, idx: usize, c_value: #to_c) -> ::crops::utils::CResult {
                     let _ = ::crops::utils::check_null_const(source)
@@ -474,7 +480,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
 
             Some(quote::quote! {
                 #(#filtered_attrs)*
+                /// ------
                 /// Replaces the current value with the provided value
+                /// ------
                 #[::crops::c_result_fn]
                 fn #setter(source: *mut #ident, value: #from_c) -> ::crops::utils::CResult {
                     ::crops::utils::check_null(source)
@@ -485,7 +493,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
                 }
 
                 #(#filtered_attrs)*
-                /// Replaces the current value with the provided value
+                /// ------
+                /// Takes the value, removing it from the option.
+                /// ------
                 #[::crops::c_result_fn]
                 fn #taker(source: *mut #ident, c_value: #to_c) -> ::crops::utils::CResult {
                     let value = &::crops::utils::check_null(source)
@@ -500,7 +510,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
                 }
 
                 #(#filtered_attrs)*
-                /// Replaces the current value with the provided value
+                /// ------
+                /// Gets the current value within the option.
+                /// ------
                 #[::crops::c_result_fn]
                 fn #getter(source: *const #ident, c_value: #to_c) -> ::crops::utils::CResult {
                     if let Some(value) = ::crops::utils::check_null_const(source)
@@ -520,7 +532,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
 
             Some(quote::quote! {
                 #(#filtered_attrs)*
+                /// ------
                 /// Replaces the current value with the provided value
+                /// ------
                 #[::crops::c_result_fn]
                 fn #setter(source: *mut #ident, value: #from_c) -> ::crops::utils::CResult {
                     ::crops::utils::check_null(source)
@@ -531,7 +545,9 @@ fn generate_struct_field_api(ident: &Ident, field: &Field) -> Option<TokenStream
                 }
 
                 #(#filtered_attrs)*
-                /// Replaces the current value with the provided value
+                /// ------
+                /// Gets the current value
+                /// ------
                 #[::crops::c_result_fn]
                 fn #getter(source: *const #ident, c_value: #to_c) -> ::crops::utils::CResult {
                     let value = &::crops::utils::check_null_const(source)
@@ -573,6 +589,9 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
         );
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Construct a new model
+            /// ------
             #[no_mangle]
             pub extern "C" fn #new_ident() -> *mut #ident {
                 Box::into_raw(Box::default())
@@ -588,6 +607,9 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
 
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Clone the structure
+            /// ------
             #[no_mangle]
             pub extern "C" fn #clone_ident(s: &#ident) -> *mut #ident {
                 Box::into_raw(Box::new(s.clone()))
@@ -603,6 +625,9 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
 
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Print a debug of the struct to stdout
+            /// ------
             #[no_mangle]
             pub extern "C" fn #debug_ident(s: &#ident) {
                 println!("{:?}", s);
@@ -654,6 +679,9 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
                 Ok(res)
             }
             #(#filtered_attrs)*
+            /// ------
+            /// Unique Constructor with sepcific fields
+            /// ------
             #[no_mangle]
             pub extern "C" fn #constructor_ident(#(#inputs),*) -> *mut #ident {
                 let res = #inner_constructor(#(#constructor),*)
@@ -692,6 +720,9 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
         );
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Construct a new blank enum
+            /// ------
             #[no_mangle]
             pub extern "C" fn #new_ident() -> *mut #ident {
                 Box::into_raw(Box::default())
@@ -706,6 +737,9 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
         );
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Clone the enum value
+            /// ------
             #[no_mangle]
             pub extern "C" fn #clone_ident(s: &#ident) -> *mut #ident {
                 Box::into_raw(Box::new(s.clone()))
@@ -721,6 +755,9 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
 
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Print a debug string of the enum to stdout
+            /// ------
             #[no_mangle]
             pub extern "C" fn #debug_ident(s: &#ident) {
                 println!("{:?}", s);
@@ -782,6 +819,9 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
 
         quote::quote!(
             #(#filtered_attrs)*
+            /// ------
+            /// Convert the enum into a new variant type
+            /// ------
             #[::crops::c_result_fn]
             pub fn #as_variant_ident(res: *mut #ident #(, #input_args)*) -> ::crops::utils::CResult {
                 let res = ::crops::utils::check_null(res)
@@ -792,6 +832,9 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
             }
 
             #(#filtered_attrs)*
+            /// ------
+            /// Construct the enum as a specific variant
+            /// ------
             #[no_mangle]
             pub extern "C" fn #new_variant_ident(#(#input_args)*) -> *mut #ident {
                 Box::into_raw(Box::new(#ident::#var_ident #enum_filler))
