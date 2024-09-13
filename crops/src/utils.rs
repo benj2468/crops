@@ -40,8 +40,9 @@ pub fn copy_string(c_value: *mut libc::c_char, value: &str) -> Result<(), String
 }
 
 pub mod duration {
+    pub type Duration = std::time::Duration;
     #[no_mangle]
-    pub extern "C" fn duration_from_ms(ms: u64) -> *mut std::time::Duration {
+    pub extern "C" fn duration_from_ms(ms: u64) -> *mut Duration {
         Box::into_raw(Box::new(std::time::Duration::from_millis(ms)))
     }
 }
