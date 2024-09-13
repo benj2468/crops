@@ -297,7 +297,7 @@ fn gen_c_types_inner(args: &CBuilderFieldArgs, ty: &Type) -> CTypes {
                 rust: ty.clone(),
                 from_c: parse_quote!(&::crops::_macros::libc::c_char),
                 from_c_parser: Box::new(|ident| parse_quote!(= ::crops::utils::as_string(#ident)?)),
-                to_c: parse_quote!(::crops::utils::StringBuffer),
+                to_c: parse_quote!(*mut ::crops::_macros::libc::c_char),
                 to_c_parser: Box::new(
                     |c_value, value| parse_quote!(::crops::utils::copy_string(#c_value, #value)?),
                 ),
