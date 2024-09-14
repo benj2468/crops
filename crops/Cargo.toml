@@ -4,11 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-crops-derive = { path = "crops-derive" }
+crops-derive = { path = "../crops-derive" }
 libc = "0.2.153"
-
-[workspace]
-members = ["crops-derive"]
 
 [dev-dependencies]
 trybuild = "1.0.91"
