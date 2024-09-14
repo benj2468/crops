@@ -12,5 +12,6 @@ pub enum Color {
     #[default]
     Red,
     Blue,
-    Green
+    Green,
+    Other(String)
 }

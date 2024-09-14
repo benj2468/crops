@@ -773,25 +773,30 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
             ..
         } = variant;
 
-        let (field_args, filtered_attrs) = filter_args(attrs);
+        let (_, filtered_attrs) = filter_args(attrs);
 
         let (input_args, enum_filler): (Vec<_>, _) = if let Fields::Unnamed(unnamed) = &fields {
             if unnamed.unnamed.len() != 1 {
                 panic!("Only single unnamed fields supported");
             }
 
-            let Field { ty, .. } = unnamed.unnamed.first().unwrap();
+            let field = unnamed.unnamed.first().unwrap();
 
             let CTypes {
                 from_c,
                 from_c_parser,
                 ..
-            } = consider_copyable(&field_args, ty);
+            } = gen_c_types(field);
             let parser = from_c_parser(&parse_quote!(value));
 
             (
                 vec![quote::quote!(value: #from_c)],
-                quote::quote!((#parser)),
+                quote::quote! {
+                    ({
+                        let inner #parser;
+                        inner
+                    })
+                }
             )
         } else if matches!(fields, Fields::Unit) {
             (Default::default(), Default::default())
@@ -829,15 +834,6 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
                 *res = #ident::#var_ident #enum_filler;
 
                 Ok(())
-            }
-
-            #(#filtered_attrs)*
-            /// ------
-            /// Construct the enum as a specific variant
-            /// ------
-            #[no_mangle]
-            pub extern "C" fn #new_variant_ident(#(#input_args)*) -> *mut #ident {
-                Box::into_raw(Box::new(#ident::#var_ident #enum_filler))
             }
         )
     });
