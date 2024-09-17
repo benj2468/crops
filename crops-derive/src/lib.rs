@@ -635,6 +635,28 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
         )
     });
 
+    let c_free = args.c_debug.then(|| {
+        let free_ident = syn::Ident::new(
+            &format!("{}_free", ident.to_string().to_case(Case::Snake)),
+            ident.span(),
+        );
+
+        quote::quote!(
+            #(#filtered_attrs)*
+            /// ------
+            /// Free the memory allocated by an opque type's pointer
+            ///
+            /// # Safety
+            ///
+            /// This function requires that the value passed in be properly aligned by Box/Rust. This function will free the memory allocated at the pointer.
+            /// ------
+            #[no_mangle]
+            pub unsafe extern "C" fn #free_ident(s: *mut #ident) {
+                unsafe { drop(Box::from_raw(s)) };
+            }
+        )
+    });
+
     let extra_constructors = args.c_constructors.iter().map(|constructor| {
         let constructor_ident = syn::Ident::new(
             &format!(
@@ -699,6 +721,8 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
         #c_clone
 
         #c_debug
+
+        #c_free
 
         #(#extra_constructors)*
 
@@ -765,6 +789,28 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
         )
     });
 
+    let c_free = args.c_debug.then(|| {
+        let free_ident = syn::Ident::new(
+            &format!("{}_free", ident.to_string().to_case(Case::Snake)),
+            ident.span(),
+        );
+
+        quote::quote!(
+            #(#filtered_attrs)*
+            /// ------
+            /// Free the memory allocated by an opque type's pointer
+            ///
+            /// # Safety
+            ///
+            /// This function requires that the value passed in be properly aligned by Box/Rust. This function will free the memory allocated at the pointer.
+            /// ------
+            #[no_mangle]
+            pub unsafe extern "C" fn #free_ident(s: *mut #ident) {
+                unsafe { drop(Box::from_raw(s)) };
+            }
+        )
+    });
+
     let variants = variants.iter().map(|variant| {
         let Variant {
             attrs,
@@ -813,15 +859,6 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
             var_ident.span(),
         );
 
-        let new_variant_ident = syn::Ident::new(
-            &format!(
-                "{}_from_{}",
-                ident.to_string().to_case(Case::Snake),
-                var_ident.to_string().to_case(Case::Snake)
-            ),
-            var_ident.span(),
-        );
-
         quote::quote!(
             #(#filtered_attrs)*
             /// ------
@@ -844,6 +881,8 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
         #c_clone
 
         #c_debug
+
+        #c_free
 
         #(#variants)*
 

@@ -1,2 +1,2 @@
 [workspace]
-members = ["crops", "crops-derive"]
+members = ["crops", "crops-derive", "examples/simple"]

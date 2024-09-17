@@ -7,7 +7,7 @@ pub struct Brush {
     name: String
 }
 
-#[derive(crops::CBuilder, Default, Clone, Debug)]
+#[derive(crops::CBuilder, Default, Clone, Debug, PartialEq)]
 pub enum Color {
     #[default]
     Red,

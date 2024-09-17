@@ -4,6 +4,7 @@
 
     fenix.url = "github:nix-community/fenix";
     flake-utils.url = "github:numtide/flake-utils";
+    # TODO get off naersk
     naersk.url = "github:nix-community/naersk";
   };
 
@@ -35,7 +36,7 @@
         };
 
         crops = naersk'.buildPackage {
-          src = ./crops;
+          src = ./.;
           copyLibs = true;
           nativeBuildInputs = with pkgs; [
             cargo-expand
@@ -59,8 +60,8 @@
           {
             inputsFrom = [ crops ];
 
-            nativeBuildInputs = with pkgs; [ ctypesgen rust-cbindgen ]
-              ++ (map (ex: ex.python) (builtins.attrValues examples));
+            nativeBuildInputs = with pkgs; [ ctypesgen rust-cbindgen ];
+              # ++ (map (ex: ex.python) (builtins.attrValues examples));
           };
 
         mkExample = { name }:

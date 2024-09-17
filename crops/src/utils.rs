@@ -54,8 +54,19 @@ pub mod duration {
         }
     }
 
+    /// Construct a new duration from a provided number of milliseconds
     #[no_mangle]
     pub extern "C" fn duration_from_ms(ms: u64) -> *mut Duration {
         Box::into_raw(Box::new(Duration(std::time::Duration::from_millis(ms))))
+    }
+
+    /// Free the Value.
+    ///
+    /// # Safety
+    ///
+    /// The provided pointer must be properly aligned by Box/Rust, this function will free that memory
+    #[no_mangle]
+    pub unsafe extern "C" fn duration_free(d: *mut Duration) {
+        unsafe { drop(Box::from_raw(d)) };
     }
 }
