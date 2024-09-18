@@ -40,11 +40,12 @@ pub fn copy_string(c_value: *mut libc::c_char, value: &str) -> Result<(), String
 }
 
 pub mod duration {
+
     pub struct Duration(std::time::Duration);
 
-    impl From<Duration> for std::time::Duration {
-        fn from(value: Duration) -> std::time::Duration {
-            value.0
+    impl AsRef<std::time::Duration> for Duration {
+        fn as_ref(&self) -> &std::time::Duration {
+            &self.0
         }
     }
 
