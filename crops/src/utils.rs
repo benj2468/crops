@@ -68,6 +68,6 @@ pub mod duration {
     /// The provided pointer must be properly aligned by Box/Rust, this function will free that memory
     #[no_mangle]
     pub unsafe extern "C" fn duration_free(d: *mut Duration) {
-        unsafe { drop(Box::from_raw(d)) };
+        crate::c_free!(d);
     }
 }

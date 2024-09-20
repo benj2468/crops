@@ -652,7 +652,7 @@ fn derive_c_builder_struct(ident: Ident, attrs: Vec<Attribute>, s: DataStruct) -
             /// ------
             #[no_mangle]
             pub unsafe extern "C" fn #free_ident(s: *mut #ident) {
-                unsafe { drop(Box::from_raw(s)) };
+                ::crops::c_free!(s);
             }
         )
     });
@@ -806,7 +806,7 @@ fn derive_c_builder_enum(ident: Ident, attrs: Vec<Attribute>, s: DataEnum) -> To
             /// ------
             #[no_mangle]
             pub unsafe extern "C" fn #free_ident(s: *mut #ident) {
-                unsafe { drop(Box::from_raw(s)) };
+                ::crops::c_free!(s);
             }
         )
     });
