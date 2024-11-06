@@ -41,7 +41,7 @@ pub fn copy_string(c_value: *mut libc::c_char, value: &str) -> Result<(), String
 
 pub mod duration {
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Default)]
     pub struct Duration(std::time::Duration);
 
     impl AsRef<std::time::Duration> for Duration {
