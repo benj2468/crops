@@ -4,7 +4,7 @@ pub struct Brush {
     weight: u8,
     color: Color,
     /// An identifier for the brush
-    name: String
+    name: String,
 }
 
 #[derive(crops::CBuilder, Default, Clone, Debug, PartialEq)]
@@ -13,5 +13,5 @@ pub enum Color {
     Red,
     Blue,
     Green,
-    Other(String)
+    Other(String),
 }

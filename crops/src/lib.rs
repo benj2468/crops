@@ -11,7 +11,6 @@ pub mod _macros {
     pub use libc;
 }
 
-
 #[macro_export]
 macro_rules! c_free {
     ($var:ident) => {
